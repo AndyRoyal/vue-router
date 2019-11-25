@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>vue-router 完善中级版本demo</title>
+</head>
+<body>
+
+</body>
+</html>
+
+
+<script>
+
+class Routers{
+    /**构造器方便测试，默认输入两个对象
+     * @输入 路由列表对象，包括 hash 与其 对应的回调, 如 { "a": () => { console.log('a') }, "b": () => { console.log('b') }... }
+     * @输出 路由列表数组，默认存储的 hash 历史  ["a","b"]
+     * */ 
+    constructor(routersList,hashHistory){
+        // 路由列表对象，用来存放所有路由与对应的回调
+        this.routersList = routersList || {};
+        // 存储hash历史的 数组
+        this.hashHistory = hashHistory || [];
+        // 当前的hash索引，默认指向hash历史数组的末尾，前进时+1，后退时-1
+        this.currentHashIndex = this.hashHistory.length-1;
+        // 当页的hash值
+        //this.currentHash = "";
+        // 页面初始化时，监听load事件，并执行当前hash对应的回调
+        window.addEventListener('load',this.refresh,false);
+        // 页面hash被修改时，监听 hashchange 事件，并执行当前hash对应的回调
+        window.addEventListener('hashchange',this.refresh,false);
+    }
+    /**
+     * 1. 通过当前hash索引+1,得到下一个索引。并修改hash为下一个索引
+     * 2. 通过监听 hashchange 来调用refresh执行回调
+     * */ 
+    go(){
+        this.currentHashIndex++;
+        console.log('下一个hash索引 ', this.currentHashIndex)
+        //边界处理，如果路由当前索引小于history数组时，才能前时，否则 当前索引减1，并报错。
+        if(this.currentHashIndex < this.hashHistory.length){
+            location.hash = this.hashHistory[this.currentHashIndex]
+        }else{
+            //前进时，当前索引增加了1，但是没有对应的路由，所以需要减去1，否则，走到这一步边界时，需要调用back两次才会生效。
+            this.currentHashIndex = this.currentHashIndex -1;
+            throw new Error("路由数组中，没有前进路由了");
+        }
+    }
+    /**
+     * 1. 添加新的hash，和callback
+     * 2. 并跳转到新的hash，通过监听 hashchange 来调用refresh执行回调
+     * */ 
+    push(hash,cb){
+        //新增hash到hashHistory数组
+        this.hashHistory.push(hash);
+        //新增hash和对应callback到routerList对象
+        this.routersList[hash] = cb || (() =>{ });
+        // 修改当前页面hash为新增的hash
+        window.location.hash=hash;
+        // 更新当前的索引为改变history长度后的索引。指向其中最后一个hash
+        this.currentHashIndex = this.hashHistory.length-1;
+    }
+    /**
+     * 1. 通过当前hash索引-1,得到上一个索引。并修改hash为上一个索引
+     * */ 
+    back(){
+        // 如果当前的hash索引小于0 就让其等于0;
+        if(this.currentHashIndex <= 0){
+            this.currentHashIndex = 0;
+            throw new Error("已到hashHistory最顶端")
+        }else{
+            this.currentHashIndex = this.currentHashIndex - 1;
+        }
+        console.log('当前hash索引 ',this.currentHashIndex)
+        location.hash = this.hashHistory[this.currentHashIndex]
+    }
+    /**
+     * 1. 获取Url中的hash，并执行当前hash的回调
+     * */ 
+    refresh(){
+        this.currentUrl = location.hash.slice(1) || '/';   //   '/a' 方便测试用
+        // 执行当前路由的回调   
+        this.routersList[this.currentUrl] &&　this.routersList[this.currentUrl]();
+    }
+
+}
+
+var routersList = { "a": () => { console.log('a') }, "b": () => { console.log('b') } };
+var hashHistory = ["a","b"]
+var routers = new Routers(routersList,hashHistory);  
+routers.push('c',()=>{console.log('c')});
+console.log(routers);  // 此时，我们的当前hash是c , 路由实例为：{routersList: {…}, hashHistory: Array(3), currentHashIndex: 2}
+// 通过实例的go,和 back 方法来前进 、 后退, 无需传参
+routers.go()
+routers.back()
+// 记得边界处理
+
+// 此版本，并没有存储所有的 hash访问历史。 我们需要在go 和back的时候去增加历史到 hashHistory中。
+// 此版本，只是模拟了前进与后退，和浏览器真正的 history相比是没有做到全部记录。
+
+
+</script>
